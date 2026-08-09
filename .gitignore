@@ -1,0 +1,5 @@
+/game/bin/
+
+/.idea/
+/src/cmake-build-*/
+/src/build/
