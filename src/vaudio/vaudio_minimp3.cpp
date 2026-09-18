@@ -1,4 +1,3 @@
-#include <SDL3/SDL_assert.h>
 #include <interface/interface.h>
 #include <vaudio/ivaudio.h>
 
@@ -25,51 +24,52 @@ class CMiniMP3 final : public IAudioStream {
   void SetPosition(unsigned int position) override;
 
  private:
+  int SampleToByte(int sample) { return sample * sizeof(mp3d_sample_t); }
+  int ByteToSample(int byte) { return byte / sizeof(mp3d_sample_t); }
+
   mp3dec_ex_t m_Dec{};
   IAudioStreamEvent* m_pEventHandler;
 
   static constexpr int m_dataSize = MINIMP3_IO_SIZE;
-  uint8_t m_pData[m_dataSize]{};
-  unsigned int m_readed = 0;
+  uint8_t m_pData[m_dataSize];
+  unsigned int m_offset = 0;
 };
 
 CMiniMP3::CMiniMP3(IAudioStreamEvent* pEventHandler) {
   m_pEventHandler = pEventHandler;
   const int size = m_pEventHandler->StreamRequestData(m_pData, m_dataSize, 0);
+  m_offset = size;
   mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
-  m_readed += size;
 }
 
 int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
-  SDL_assert(bufferSize <= m_dataSize);
+  int samples = mp3dec_ex_read(&m_Dec, static_cast<mp3d_sample_t*>(pBuffer),
+                               ByteToSample(bufferSize));
 
-  if (m_Dec.offset + bufferSize > m_dataSize) {
-    unsigned int offset = m_Dec.offset - m_dataSize;
-    // move forward
-    m_readed -= offset;
-    const int size = m_pEventHandler->StreamRequestData(
-        m_pData, m_dataSize, static_cast<int>(m_readed));
-    m_readed += m_dataSize;
-    if (size != m_dataSize) memset(m_pData + size, 0, m_dataSize - size);
-
+  while (SampleToByte(samples) < bufferSize) {
+    const int size =
+        m_pEventHandler->StreamRequestData(m_pData, m_dataSize, m_offset);
+    m_offset += size;
     mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
+    if (size == 0) return SampleToByte(samples);
+    samples +=
+        mp3dec_ex_read(&m_Dec, static_cast<mp3d_sample_t*>(pBuffer) + samples,
+                       ByteToSample(bufferSize - SampleToByte(samples)));
   }
 
-  const size_t samples =
-      mp3dec_ex_read(&m_Dec, static_cast<mp3d_sample_t*>(pBuffer),
-                     bufferSize / sizeof(mp3d_sample_t));
-  const int bytes = static_cast<int>(samples * sizeof(mp3d_sample_t));
-  return bytes;
+  return SampleToByte(samples);
 }
 
 void CMiniMP3::SetPosition(unsigned int position) {
-  const int size = m_pEventHandler->StreamRequestData(
-      m_pData, m_dataSize, static_cast<int>(position));
-  if (size < m_dataSize) memset(m_pData + size, 0, m_dataSize - size);
+  if (m_offset > position && m_offset - m_Dec.file.size < position) {
+    mp3dec_ex_seek(&m_Dec, position - (m_offset - m_Dec.file.size));
+  } else {
+    const int size =
+        m_pEventHandler->StreamRequestData(m_pData, m_dataSize, position);
+    mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
 
-  mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
-
-  m_readed = position;
+    m_offset = position + size;
+  }
 }
 
 class CVAudio : public IVAudio {
