@@ -22,16 +22,13 @@ class IAudioStream {
 
   // output sampling bits (8/16)
   virtual int GetOutputBits() = 0;
-
   // output sampling rate in Hz
   virtual int GetOutputRate() = 0;
-
   // output channels (1=mono,2=stereo)
   virtual int GetOutputChannels() = 0;
 
   // seek
   virtual unsigned int GetPosition() = 0;
-
   // NOTE: BUGBUG: Only supports seeking forward currently!
   virtual void SetPosition(unsigned int position) = 0;
 
@@ -46,10 +43,8 @@ class IVAudio {
 
   virtual IAudioStream* CreateMP3StreamDecoder(
       IAudioStreamEvent* pEventHandler) = 0;
-
   virtual void DestroyMP3StreamDecoder(IAudioStream* pDecoder) = 0;
 
   virtual void* CreateMilesAudioEngine() = 0;
-
   virtual void DestroyMilesAudioEngine(void*) = 0;
 };

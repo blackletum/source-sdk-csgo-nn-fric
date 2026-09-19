@@ -2,16 +2,15 @@
 
 #include <SDL3/SDL_platform_defines.h>
 
+typedef void* (*CreateInterfaceFn)(const char* pName, int* pReturnCode);
+
 class InterfaceReg {
  public:
   InterfaceReg(void* (*CreateFN)(), const char* pInterfaceName);
-
   ~InterfaceReg() = default;
 
   void* (*m_CreateInterface)();
-
   const char* m_pInterfaceName;
-
   InterfaceReg* m_pNext;
 };
 
@@ -20,6 +19,8 @@ extern "C"
     __declspec(dllexport)
 #endif
     void* CreateInterface(const char* pName, int* pReturnCode);
+
+CreateInterfaceFn Sys_GetFactoryThis();
 
 #define EXPOSE_INTERFACE(className, interfaceName, versionName) \
   static void* __Create##className##_interface() {              \

@@ -1,5 +1,4 @@
 #include <interface/interface.h>
-
 #include <cstring>
 
 static InterfaceReg* g_pCurrentInterfaceReg = nullptr;
@@ -11,7 +10,7 @@ InterfaceReg::InterfaceReg(void* (*CreateFN)(), const char* pInterfaceName)
   g_pCurrentInterfaceReg = this;
 }
 
-extern "C" void* CreateInterface(const char* pName, int* pReturnCode) {
+static void* CreateInterfaceInternal(const char* pName, int* pReturnCode) {
   for (const InterfaceReg* pCur = g_pCurrentInterfaceReg; pCur;
        pCur = pCur->m_pNext) {
     if (strcmp(pCur->m_pInterfaceName, pName) == 0) {
@@ -25,3 +24,9 @@ extern "C" void* CreateInterface(const char* pName, int* pReturnCode) {
 
   return nullptr;
 }
+
+extern "C" void* CreateInterface(const char* pName, int* pReturnCode) {
+  return CreateInterfaceInternal(pName, pReturnCode);
+}
+
+CreateInterfaceFn Sys_GetFactoryThis() { return &CreateInterfaceInternal; }
