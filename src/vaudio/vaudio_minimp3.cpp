@@ -10,7 +10,6 @@
 class CMiniMP3 final : public IAudioStream {
  public:
   CMiniMP3(IAudioStreamEvent* pEventHandler);
-
   ~CMiniMP3() override = default;
 
   int Decode(void* pBuffer, unsigned int bufferSize) override;
@@ -19,8 +18,9 @@ class CMiniMP3 final : public IAudioStream {
   int GetOutputRate() override { return m_Dec.info.hz; }
   int GetOutputChannels() override { return m_Dec.info.channels; }
 
-  unsigned int GetPosition() override { return m_Dec.offset; }
-
+  unsigned int GetPosition() override {
+    return m_nOffset + m_Dec.offset - m_Dec.file.size;
+  }
   void SetPosition(unsigned int position) override;
 
  private:
@@ -30,15 +30,15 @@ class CMiniMP3 final : public IAudioStream {
   mp3dec_ex_t m_Dec{};
   IAudioStreamEvent* m_pEventHandler;
 
-  static constexpr int m_dataSize = MINIMP3_IO_SIZE;
-  uint8_t m_pData[m_dataSize];
-  unsigned int m_offset = 0;
+  static constexpr int m_nDataSize = MINIMP3_IO_SIZE;
+  uint8_t m_pData[m_nDataSize];
+  unsigned int m_nOffset = 0;
 };
 
 CMiniMP3::CMiniMP3(IAudioStreamEvent* pEventHandler) {
   m_pEventHandler = pEventHandler;
-  const int size = m_pEventHandler->StreamRequestData(m_pData, m_dataSize, 0);
-  m_offset = size;
+  const int size = m_pEventHandler->StreamRequestData(m_pData, m_nDataSize, 0);
+  m_nOffset = size;
   mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
 }
 
@@ -48,8 +48,8 @@ int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
 
   while (SampleToByte(samples) < bufferSize) {
     const int size =
-        m_pEventHandler->StreamRequestData(m_pData, m_dataSize, m_offset);
-    m_offset += size;
+        m_pEventHandler->StreamRequestData(m_pData, m_nDataSize, m_nOffset);
+    m_nOffset += size;
     mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
     if (size == 0) return SampleToByte(samples);
     samples +=
@@ -61,14 +61,14 @@ int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
 }
 
 void CMiniMP3::SetPosition(unsigned int position) {
-  if (m_offset > position && m_offset - m_Dec.file.size < position) {
-    mp3dec_ex_seek(&m_Dec, position - (m_offset - m_Dec.file.size));
+  if (m_nOffset > position && m_nOffset - m_Dec.file.size < position) {
+    mp3dec_ex_seek(&m_Dec, position - (m_nOffset - m_Dec.file.size));
   } else {
     const int size =
-        m_pEventHandler->StreamRequestData(m_pData, m_dataSize, position);
+        m_pEventHandler->StreamRequestData(m_pData, m_nDataSize, position);
     mp3dec_ex_open_buf(&m_Dec, m_pData, size, MP3D_SEEK_TO_BYTE);
 
-    m_offset = position + size;
+    m_nOffset = position + size;
   }
 }
 
