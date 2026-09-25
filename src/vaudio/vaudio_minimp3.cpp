@@ -54,7 +54,8 @@ int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
   int bytes = 0;
 
   while (bufferSize >
-         bytes + MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(mp3d_sample_t)) {
+             bytes + MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(mp3d_sample_t) &&
+         m_nDataOffset < m_nDataSize) {
     int cur_bytes;
 
     cur_bytes = SampleToByte(mp3dec_decode_frame(
