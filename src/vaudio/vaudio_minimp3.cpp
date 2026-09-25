@@ -62,6 +62,8 @@ int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
         static_cast<mp3d_sample_t*>(pBuffer) + bytes / sizeof(mp3d_sample_t),
         &m_Info));
 
+    if (cur_bytes == 0 && m_Info.frame_bytes == 0) break;
+
     bytes += cur_bytes;
     m_nDataOffset += m_Info.frame_bytes;
 
