@@ -37,9 +37,7 @@ class CMiniMP3 final : public IAudioStream {
   int m_nDataSize;
 
   unsigned int m_nOffset;
-  int m_nDataOffset = 0;
-
-  mp3d_sample_t m_pPCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
+  int m_nDataOffset = 0
 };
 
 CMiniMP3::CMiniMP3(IAudioStreamEvent* pEventHandler) {
