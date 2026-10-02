@@ -45,7 +45,7 @@ CMiniMP3::CMiniMP3(IAudioStreamEvent* pEventHandler) {
   m_pEventHandler = pEventHandler;
   m_nOffset = m_nDataSize =
       m_pEventHandler->StreamRequestData(m_pData[0], m_nMaxHalfDataSize * 2, 0);
-  mp3dec_decode_frame(&m_Dec, m_pData[0], m_nDataSize, m_pPCM, &m_Info);
+  mp3dec_decode_frame(&m_Dec, m_pData[0], m_nDataSize, nullptr, &m_Info);
 }
 
 int CMiniMP3::Decode(void* pBuffer, unsigned int bufferSize) {
